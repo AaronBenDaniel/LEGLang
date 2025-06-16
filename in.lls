@@ -25,7 +25,7 @@ STR c REG0
 STR b REG0
 
 # Infinite loop
-label loop
+label loop # test
 JMP loop
 
 # Add RAM[REG1] to RAM[REG0]

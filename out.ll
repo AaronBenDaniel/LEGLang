@@ -1,63 +1,79 @@
-const a 0
-const valuea 5
-const b 1
-const valueb 9
-const c 2
-const valuec 3
 
-# Load values into RAM
-ADD | II valuea 0 REG0
-STR | IR a REG0 0
-ADD | II valueb 0 REG0
-STR | IR b REG0 0
-ADD | II valuec 0 REG0
-STR | IR c REG0 0
+# Read in initial state
+ADD | RI IO 0 REG0
+ADD | RI IO 0 REG1
+ADD | RI IO 0 REG2
+ADD | RI IO 0 REG3
 
-# Run add opperation
-ADD | II c 0 REG1
-ADD | II b 0 REG0
-CALL 0 add 0
-ADD | II b 0 REG1
-ADD | II a 0 REG0
-CALL 0 add 0
-ADD | II 0 0 REG0
-STR | IR c REG0 0
-STR | IR b REG0 0
+CALL 0 MOVE 0
 
-# Infinite loop
-label loop
-JMP | EQ | II 0 0 loop
+label infiniteLoop_
+JMP | EQ | II 0 0 infiniteLoop
 
-# Add RAM[REG1] to RAM[REG0]
-label add
+# Move stack of size REG0 from REG1 to REG2 using space space REG3
+label MOVE_
+JMP | EQ | RI REG0 0 MOVEZERO
+# DISK_NR > 0
+
+# move(disk_nr-1,source,spare,dest)
+# Push order: SPARE, DEST, SOURCE, DISK_NR
+# Save vars for later use
+PUSH | RR 0 REG3 0
+PUSH | RR 0 REG2 0
+PUSH | RR 0 REG1 0
 PUSH | RR 0 REG0 0
+
+# disk_nr-=1
+SUB | RI REG0 1 REG4
+ADD | RI REG4 0 REG0
+
+ADD | RI REG2 0 REG4
+ADD | RI REG3 0 REG2
+ADD | RI REG4 0 REG3
+CALL 0 MOVE 0
+
+# move(0,source,dest,spare)
+# Push order: SPARE, DEST, SOURCE, DISK_NR
+# Save vars for later use
+POP | RR 0 REG0 0
+POP | RR 0 REG1 0
+POP | RR 0 REG2 0
+POP | RR 0 REG3 0
+PUSH | RR 0 REG3 0
+PUSH | RR 0 REG2 0
 PUSH | RR 0 REG1 0
-CALL 0 inc 0
+PUSH | RR 0 REG0 0
+ADD | II 0 0 REG0
+CALL 0 MOVE 0
+
+# move(0,source,dest,spare)
+# Push order: SPARE, DEST, SOURCE, DISK_NR
 POP | RR 0 REG0 0
-ADD | RI REG0 0 REG1
-PUSH | RR 0 REG1 0
-CALL 0 dec 0
-POP | RR 0 REG0 0
-LOAD | RR REG0 REG1 0
-JMP | EQ | IR 0 REG1 addRet
-ADD | RI REG0 0 REG1
-POP | RR 0 REG0 0
-JMP | EQ | II 0 0 add
-label addRet
-POP | RR 0 REG0 0
+POP | RR 0 REG1 0
+POP | RR 0 REG2 0
+POP | RR 0 REG3 0
+
+# disk_nr-=1
+SUB | RI REG0 1 REG4
+ADD | RI REG4 0 REG0
+
+ADD | RI REG3 0 REG4
+ADD | RI REG1 0 REG3
+ADD | RI REG4 0 REG1
+CALL 0 MOVE 0
 RET 0 0 COUNTER
 
-# Increment RAM[REG0]
-label inc
-LOAD | RR REG0 REG1 0
-ADD | IR 1 REG1 REG2
-STR | RR REG0 REG2 0
+# DISK_NR == 0
+label MOVEZERO_
+ADD | RI REG1 0 IO
+ADD | II TOGGLE 0 IO
+ADD | RI REG2 0 IO
+ADD | II TOGGLE 0 IO
 RET 0 0 COUNTER
 
-# Decrement RAM[REG0]
-label dec
-LOAD | RR REG0 REG1 0
-SUB | RI REG1 1 REG2
-STR | RR REG0 REG2 0
-RET 0 0 COUNTER
+# consts:
+const TOGGLE 5
+const infiniteLoop 5
+const MOVE 6
+const MOVEZERO 38
 

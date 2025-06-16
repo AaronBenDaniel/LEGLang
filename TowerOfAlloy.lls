@@ -1,0 +1,73 @@
+const TOGGLE 5
+
+# Read in initial state
+ADD IO REG0
+ADD IO REG1
+ADD IO REG2
+ADD IO REG3
+
+CALL MOVE
+
+label infiniteLoop
+JMP infiniteLoop
+
+# Move stack of size REG0 from REG1 to REG2 using space space REG3
+label MOVE
+JMP EQ REG0 0 MOVEZERO
+# DISK_NR > 0
+
+# move(disk_nr-1,source,spare,dest)
+# Push order: SPARE, DEST, SOURCE, DISK_NR
+# Save vars for later use
+PUSH REG3
+PUSH REG2
+PUSH REG1
+PUSH REG0
+
+# disk_nr-=1
+SUB REG0 1 REG4
+ADD REG4 REG0
+
+ADD REG2 REG4
+ADD REG3 REG2
+ADD REG4 REG3
+CALL MOVE
+
+# move(0,source,dest,spare)
+# Push order: SPARE, DEST, SOURCE, DISK_NR
+# Save vars for later use
+POP REG0
+POP REG1
+POP REG2
+POP REG3
+PUSH REG3
+PUSH REG2
+PUSH REG1
+PUSH REG0
+ADD 0 REG0
+CALL MOVE
+
+# move(0,source,dest,spare)
+# Push order: SPARE, DEST, SOURCE, DISK_NR
+POP REG0
+POP REG1
+POP REG2
+POP REG3
+
+# disk_nr-=1
+SUB REG0 1 REG4
+ADD REG4 REG0
+
+ADD REG3 REG4
+ADD REG1 REG3
+ADD REG4 REG1
+CALL MOVE
+RET
+
+# DISK_NR == 0
+label MOVEZERO
+ADD REG1 IO
+ADD TOGGLE IO
+ADD REG2 IO
+ADD TOGGLE IO
+RET

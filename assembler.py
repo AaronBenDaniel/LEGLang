@@ -5,17 +5,18 @@
 from os import remove
 
 validDests=["REG0","REG1","REG2","REG3","REG4","REG5","COUNTER","IO"]
-consts=[]
+consts={}
 labels=[]
 calls=[]
 
 try:
     # Open files
     source = input()
-    source = open(source if source else "test.lls","r") # LEG Lang Source
+    source = open(source if source else "in.lls","r") # LEG Lang Source
     remove("out.ll") # LEG Lang
     output = open("out.ll","w")
 
+    instructionCounter=0
     # Process lines of source code
     for lineNumber, line in enumerate(source):
         lineNumber=lineNumber+1
@@ -39,17 +40,22 @@ try:
                 if len(words) != 3:
                     raise ValueError(f"Line {lineNumber}: Incorrect number of arguments for `const`")
                 if words[1].isdigit():
-                    raise ValueError("const cannot be named a number")
-                consts.append(words[1])
-                output.write(' '.join(words))
+                    raise ValueError(f"Line {lineNumber}: const cannot be named a number")
+                if words[1] in consts:
+                    raise ValueError(f"Line {lineNumber}: Redefinition of const")
+                consts[words[1]]=words[2]
+                instructionCounter=instructionCounter-1
                 
             case("label"):
                 if len(words) != 2:
                     raise ValueError(f"Line {lineNumber}: Incorrect number of arguments for `label`")
                 if words[1].isdigit():
                     raise ValueError(f"Line {lineNumber}: label cannot be named a number")
-                labels.append(words[1])
-                output.write(' '.join(words))
+                if words[1] in consts:
+                    raise ValueError(f"Line {lineNumber}: Redefiniation of label")
+                consts[words[1]]=instructionCounter
+                instructionCounter=instructionCounter-1
+                output.write(f"label {words[1]}_") # Dummy label, the real one is a const that is put at the bottom
                 
             case("ADD"):
                 match(len(words)):
@@ -122,6 +128,7 @@ try:
                         else:
                             raise ValueError(f"Line {lineNumber}: Invalid arugment `{words[3]}` for `ADD`")
                             
+                        calls.append([lineNumber,words[4]])
                         output.write(f"JMP | {words[1]} | {modifier} {words[2]} {words[3]} {words[4]}")
                     case _:
                         raise ValueError(f"Line {lineNumber}: Incorrect number of arguments for `JMP`")              
@@ -134,7 +141,7 @@ try:
                     ValueError(f"Line {lineNumber}: Incorrect number of arguments for `PUSH`")
                 if words[1] in validDests:
                     modifier="RR"
-                elif words[1] in consts or words[2].isdigit():
+                elif words[1] in consts or words[1].isdigit():
                     modifier="RI"
                 else:
                     raise ValueError(f"Invalid arugment `{words[1]}` for `PUSH`")
@@ -176,15 +183,41 @@ try:
                 else:
                     raise ValueError(f"Line {lineNumber}: Invalid arugment `{words[2]}` for `SUB`")
                 if words[3] not in validDests:
-                    raise ValueError(f"Line {lineNumber}: `{words[3]}` is not a valid destination for `ADD`")
+                    raise ValueError(f"Line {lineNumber}: `{words[3]}` is not a valid destination for `SUB`")
                 output.write(f"SUB | {modifier} {words[1]} {words[2]} {words[3]}")
-                
+            case("XOR"):
+                if words[1] in validDests:
+                    modifier="R"
+                elif words[1] in consts or words[1].isdigit():
+                    modifier="I"
+                else:
+                    raise ValueError(f"Line {lineNumber}: Invalid arugment `{words[1]}` for `XOR`")
+                if words[2] in validDests:
+                    modifier=modifier+'R'
+                elif words[2] in consts or words[2].isdigit():
+                    modifier=modifier+'I'
+                else:
+                    raise ValueError(f"Line {lineNumber}: Invalid arugment `{words[2]}` for `XOR`")
+                if words[3] not in validDests:
+                    raise ValueError(f"Line {lineNumber}: `{words[3]}` is not a valid destination for `XOR`")
+                output.write(f"XOR | {modifier} {words[1]} {words[2]} {words[3]}")
+            case _:
+                instructionCounter=instructionCounter-1
+        
+        instructionCounter=instructionCounter+1
+        
         # Write comment
-        output.write(comment if comment else '\n')
+        if words[0] != "const": # Yes this removes const comments
+            output.write(comment if comment else '\n')
+    
+    # Write out consts
+    output.write("\n# consts:\n")
+    for name, value in consts.items():
+        output.write(f"const {name} {value}\n")
     
     # If there were any function calls to non-existant functions, throw an error
     for lineNumber, call in calls:
-        if call not in labels:
+        if call not in consts:
             raise ValueError(f"Line {lineNumber}: Label `{call}` does not exist")
         
 # Close files        
