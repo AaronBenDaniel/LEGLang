@@ -219,6 +219,11 @@ try:
     for lineNumber, call in calls:
         if call not in consts:
             raise ValueError(f"Line {lineNumber}: Label `{call}` does not exist")
+            
+    if instructionCounter>256:
+        raise ValueError("Program greater than 1024 bytes. Unable to store in LEGcompressed architecture")
+        
+    print(f"Sucessfully compiled in {instructionCounter*4} bytes ({int(instructionCounter/256*100)}% of 1024 bytes)")
         
 # Close files        
 finally:
