@@ -1,0 +1,62 @@
+const a 0
+const valuea 5
+const b 1
+const valueb 9
+const c 2
+const valuec 3
+
+# Load values into RAM
+ADD valuea REG0
+STR a REG0
+ADD valueb REG0
+STR b REG0
+ADD valuec REG0
+STR c REG0
+
+# Run add opperation
+ADD c REG1
+ADD b REG0
+CALL add
+ADD b REG1
+ADD a REG0
+CALL add
+ADD 0 REG0
+STR c REG0
+STR b REG0
+
+# Infinite loop
+label loop
+JMP loop
+
+# Add RAM[REG1] to RAM[REG0]
+label add
+PUSH REG0
+PUSH REG1
+CALL inc
+POP REG0
+ADD REG0 REG1
+PUSH REG1
+CALL dec
+POP REG0
+LOAD REG0 REG1
+JMP EQ 0 REG1 addRet
+ADD REG0 REG1
+POP REG0
+JMP add
+label addRet
+POP REG0
+RET
+
+# Increment RAM[REG0]
+label inc
+LOAD REG0 REG1
+ADD 1 REG1 REG2
+STR REG0 REG2
+RET
+
+# Decrement RAM[REG0]
+label dec
+LOAD REG0 REG1
+SUB REG1 1 REG2
+STR REG0 REG2
+RET

@@ -1,0 +1,62 @@
+const a 0
+const valuea 5
+const b 1
+const valueb 9
+const c 2
+const valuec 3
+
+# Load values into RAM
+ADDII valuea 0 REG0
+STR_IR a REG0 0
+ADDII valueb 0 REG0
+STR_IR b REG0 0
+ADDII valuec 0 REG0
+STR_IR c REG0 0
+
+# Run add opperation
+ADDII c 0 REG1
+ADDII b 0 REG0
+CALL 0 add 0
+ADDII b 0 REG1
+ADDII a 0 REG0
+CALL 0 add 0
+ADDII 0 0 REG0
+STR_IR c REG0 0
+STR_IR b REG0 0
+
+# Infinite loop
+label loop
+JMP_EQ_II 0 0 loop
+
+# Add RAM[REG1] to RAM[REG0]
+label add
+PUSHR 0 REG0 0
+PUSHR 0 REG1 0
+CALL 0 inc 0
+POPR 0 REG0 0
+ADDIR 0 REG0 REG1
+PUSHR 0 REG1 0
+CALL 0 dec 0
+POPR 0 REG0 0
+LDR_RR REG0 REG1 0
+JMP_EQ_IR 0 REG1 addRet
+ADDIR 0 REG0 REG1
+POPR 0 REG0 0
+JMP_EQ_II 0 0 add
+label addRet
+POPR 0 REG0 0
+RET 0 0 COUNTER
+
+# Increment RAM[REG0]
+label inc
+LDR_RR REG0 REG1 0
+ADDIR 1 REG1 REG2
+STR_RR REG0 REG2 0
+RET 0 0 COUNTER
+
+# Decrement RAM[REG0]
+label dec
+LDR_RR REG0 REG1 0
+SUBRI REG1 1 REG2
+STR_RR REG0 REG2 0
+RET 0 0 COUNTER
