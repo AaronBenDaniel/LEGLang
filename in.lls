@@ -1,19 +1,8 @@
-const a 0
-const valuea 5
-const b 1
-const valueb 9
-const c 2
-const valuec 3
+var a 5
+var b 9
+var c 3
 
-# Load values into RAM
-ADD valuea REG0
-STR a REG0
-ADD valueb REG0
-STR b REG0
-ADD valuec REG0
-STR c REG0
-
-# Run add opperation
+# Run add operation
 ADD c REG1
 ADD b REG0
 CALL add
