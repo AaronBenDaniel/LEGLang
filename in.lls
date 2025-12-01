@@ -1,51 +1,70 @@
-var a 5
-var b 9
-var c 3
+var a 9
+var b
 
-# Run add operation
-ADD c REG1
-ADD b REG0
-CALL add
-ADD b REG1
 ADD a REG0
-CALL add
-ADD 0 REG0
-STR c REG0
-STR b REG0
+ADD b REG1
+CALL fibb
+LOAD b REG0
 
-# Infinite loop
-label loop # test
-JMP loop
+label infiniteLoop
+JMP infiniteLoop
 
-# Add RAM[REG1] to RAM[REG0]
-label add
-PUSH REG0
-PUSH REG1
-CALL inc
-POP REG0
-ADD REG0 REG1
-PUSH REG1
-CALL dec
-POP REG0
-LOAD REG0 REG1
-JMP EQ 0 REG1 addRet
-ADD REG0 REG1
-POP REG0
-JMP add
-label addRet
-POP REG0
+# Stores A-th fibbonacci number in B
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL fibb
+# A-th fibbonacci number now in B
+label fibb
+LOAD REG0 REG2
+JMP EQ REG2 0 zero
+JMP EQ REG2 1 one
+
+SUB REG2 1 REG2
+STR REG0 REG2
+PUSH REG2
+CALL fibb
+POP REG2
+LOAD REG1 REG3
+PUSH REG3
+
+
+SUB REG2 1 REG2
+STR REG0 REG2
+CALL fibb
+LOAD REG1 REG2
+POP REG3
+ADD REG2 REG3 REG2
+STR REG1 REG2
 RET
 
-# Increment RAM[REG0]
-label inc
-LOAD REG0 REG1
-ADD 1 REG1 REG2
+label zero
+STR REG1 0
+RET
+label one
+STR REG1 1
+RET
+
+
+
+# Takes two variables, adds the value of B and adds to A
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL addVars
+label addVars
+LOAD REG0 REG2
+LOAD REG1 REG1
+ADD REG1 REG2 REG2
 STR REG0 REG2
 RET
 
-# Decrement RAM[REG0]
-label dec
-LOAD REG0 REG1
-SUB REG1 1 REG2
-STR REG0 REG2
+# Moves value of B into A
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL moveVar
+label moveVar
+LOAD REG1 REG1
+STR REG0 REG1
 RET

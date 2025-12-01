@@ -1,0 +1,70 @@
+var a 9
+var b
+
+ADD a REG0
+ADD b REG1
+CALL fibb
+LOAD b REG0
+
+label infiniteLoop
+JMP infiniteLoop
+
+# Stores A-th fibbonacci number in B
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL fibb
+# A-th fibbonacci number now in B
+label fibb
+LOAD REG0 REG2
+JMP EQ REG2 0 zero
+JMP EQ REG2 1 one
+
+SUB REG2 1 REG2
+STR REG0 REG2
+PUSH REG2
+CALL fibb
+POP REG2
+LOAD REG1 REG3
+PUSH REG3
+
+
+SUB REG2 1 REG2
+STR REG0 REG2
+CALL fibb
+LOAD REG1 REG2
+POP REG3
+ADD REG2 REG3 REG2
+STR REG1 REG2
+RET
+
+label zero
+STR REG1 0
+RET
+label one
+STR REG1 1
+RET
+
+
+
+# Takes two variables, adds the value of B and adds to A
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL addVars
+label addVars
+LOAD REG0 REG2
+LOAD REG1 REG1
+ADD REG1 REG2 REG2
+STR REG0 REG2
+RET
+
+# Moves value of B into A
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL moveVar
+label moveVar
+LOAD REG1 REG1
+STR REG0 REG1
+RET

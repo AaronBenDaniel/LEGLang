@@ -133,16 +133,20 @@ try:
                         f"Line {lineNumber}: Incorrect number of arguments for `STR`"
                     )
                 if words[1] in validDests:
-                    modifier = "RR"
+                    modifier = "R"
                 elif words[1] in consts or words[1].isdigit():
-                    modifier = "IR"
+                    modifier = "I"
                 else:
                     raise ValueError(
                         f"Line {lineNumber}: Invalid arugment `{words[1]}` for `STR`"
                     )
-                if words[2] not in validDests:
+                if words[2] in validDests:
+                    modifier += "R"
+                elif words[2] in consts or words[2].isdigit():
+                    modifier += "I"
+                else:
                     raise ValueError(
-                        f"Line {lineNumber}: `{words[2]}` is not a valid argument for `STR`"
+                        f"Line {lineNumber}: Invalid arugment `{words[2]}` for `STR`"
                     )
                 output.write(f"STR | {modifier} {words[1]} {words[2]} 0")
 

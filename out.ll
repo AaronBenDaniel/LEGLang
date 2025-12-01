@@ -2,70 +2,88 @@ CALL 0 initVars 0
 
 
 
-
-# Run add opperation
-ADD | II c 0 REG1
-ADD | II b 0 REG0
-CALL 0 add 0
-ADD | II b 0 REG1
 ADD | II a 0 REG0
-CALL 0 add 0
-ADD | II 0 0 REG0
-STR | IR c REG0 0
-STR | IR b REG0 0
+ADD | II b 0 REG1
+CALL 0 fibb 0
+LOAD | IR b REG0 0
 
-# Infinite loop
-label loop_ # test
-JMP | EQ | II 0 0 loop
+label infiniteLoop_
+JMP | EQ | II 0 0 infiniteLoop
 
-# Add RAM[REG1] to RAM[REG0]
-label add_
-PUSH | RR 0 REG0 0
-PUSH | RR 0 REG1 0
-CALL 0 inc 0
-POP | RR 0 REG0 0
-ADD | RI REG0 0 REG1
-PUSH | RR 0 REG1 0
-CALL 0 dec 0
-POP | RR 0 REG0 0
-LOAD | RR REG0 REG1 0
-JMP | EQ | IR 0 REG1 addRet
-ADD | RI REG0 0 REG1
-POP | RR 0 REG0 0
-JMP | EQ | II 0 0 add
-label addRet_
-POP | RR 0 REG0 0
+# Stores A-th fibbonacci number in B
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL fibb
+# A-th fibbonacci number now in B
+label fibb_
+LOAD | RR REG0 REG2 0
+JMP | EQ | RI REG2 0 zero
+JMP | EQ | RI REG2 1 one
+
+SUB | RI REG2 1 REG2
+STR | RR REG0 REG2 0
+PUSH | RR 0 REG2 0
+CALL 0 fibb 0
+POP | RR 0 REG2 0
+LOAD | RR REG1 REG3 0
+PUSH | RR 0 REG3 0
+
+
+SUB | RI REG2 1 REG2
+STR | RR REG0 REG2 0
+CALL 0 fibb 0
+LOAD | RR REG1 REG2 0
+POP | RR 0 REG3 0
+ADD | RR REG2 REG3 REG2
+STR | RR REG1 REG2 0
 RET 0 0 COUNTER
 
-# Increment RAM[REG0]
-label inc_
-LOAD | RR REG0 REG1 0
-ADD | IR 1 REG1 REG2
+label zero_
+STR | RI REG1 0 0
+RET 0 0 COUNTER
+label one_
+STR | RI REG1 1 0
+RET 0 0 COUNTER
+
+
+
+# Takes two variables, adds the value of B and adds to A
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL addVars
+label addVars_
+LOAD | RR REG0 REG2 0
+LOAD | RR REG1 REG1 0
+ADD | RR REG1 REG2 REG2
 STR | RR REG0 REG2 0
 RET 0 0 COUNTER
 
-# Decrement RAM[REG0]
-label dec_
-LOAD | RR REG0 REG1 0
-SUB | RI REG1 1 REG2
-STR | RR REG0 REG2 0
+# Moves value of B into A
+# Usage:
+# ADD A REG0
+# ADD B REG1
+# CALL moveVar
+label moveVar_
+LOAD | RR REG1 REG1 0
+STR | RR REG0 REG1 0
 RET 0 0 COUNTER
 
 # Initialize variables
 label initVars_
-STR | II a 5 0
-STR | II b 9 0
-STR | II c 3 0
+STR | II a 9 0
+STR | II b 0 0
 RET 0 0 COUNTER
 
 # consts:
 const a 255
 const b 254
-const c 253
-const loop 10
-const add 11
-const addRet 24
-const inc 26
-const dec 30
-const initVars 34
+const infiniteLoop 5
+const fibb 6
+const zero 24
+const one 26
+const addVars 28
+const moveVar 33
+const initVars 36
 
