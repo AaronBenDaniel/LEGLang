@@ -1,70 +1,217 @@
-var a 9
-var b
+const CONTEXTHEAD 0
+const STACKEND 1
+STR CONTEXTHEAD 2
+STR STACKEND 2
 
-ADD a REG0
-ADD b REG1
-CALL fibb
-LOAD b REG0
+const numFibbs 3
 
-label infiniteLoop
-JMP infiniteLoop
+JMP main
 
-# Stores A-th fibbonacci number in B
-# Usage:
-# ADD A REG0
-# ADD B REG1
-# CALL fibb
-# A-th fibbonacci number now in B
+
+
+#
+# Begin definition of fibb
+#
+
+# returnVarOffset is always 0
+const NOffset 1
+
 label fibb
-LOAD REG0 REG2
-JMP EQ REG2 0 zero
-JMP EQ REG2 1 one
+# Load value of N into REG0
+LOAD CONTEXTHEAD REG0
+ADD REG0 NOffset REG0
+LOAD REG0 REG0
 
-SUB REG2 1 REG2
-STR REG0 REG2
-PUSH REG2
+# Test in N equals 1 or 0
+JMP EQ REG0 0 zero
+JMP EQ REG0 1 one
+
+# A=fibb(N-1)
+
+#
+# Begin fibb call
+#
+
+# Store N in REG5 IMPORTANT FOR LATER
+LOAD CONTEXTHEAD REG0
+ADD NOffset REG0
+LOAD REG0 REG5 
+
+# Allocates RAM for returnVar
+const AOffset NOffset+1
+# Increment STACKEND
+LOAD STACKEND REG0
+ADD REG0 1 REG0
+STR STACKEND REG0
+
+# Save CONTEXTHEAD and move it forward
+LOAD CONTEXTHEAD REG0
+PUSH REG0
+LOAD STACKEND REG0
+STR CONTEXTHEAD REG0
+
+# Save STACKEND
+LOAD STACKEND REG0
+PUSH REG0
+
+# Allocates RAM for N
+#Increment STACKEND
+LOAD STACKEND REG0
+ADD REG0 1 REG0
+STR STACKEND REG0
+
+# Store N-1 into N    N STORED IN REG5 FROM EARLIER
+LOAD CONTEXTHEAD REG0
+ADD REG0 NOffset REG0
+SUB REG5 1 REG1
+STR REG0 REG1
+
 CALL fibb
-POP REG2
-LOAD REG1 REG3
-PUSH REG3
 
+# Restore STACKEND and CONTEXTHEAD
+POP REG0
+STR STACKEND REG0
+POP REG0
+STR CONTEXTHEAD REG0
 
-SUB REG2 1 REG2
-STR REG0 REG2
+#
+# end fibb call
+#
+
+# B=fibb(N-2)
+
+#
+# Begin fibb call
+#
+
+# Store N in REG5 IMPORTANT FOR LATER
+LOAD CONTEXTHEAD REG0
+ADD NOffset REG0
+LOAD REG0 REG5 
+
+# Allocates RAM for returnVar
+const BOffset AOffset+1
+# Increment STACKEND
+LOAD STACKEND REG0
+ADD REG0 1 REG0
+STR STACKEND REG0
+
+# Save CONTEXTHEAD and move it forward
+LOAD CONTEXTHEAD REG0
+PUSH REG0
+LOAD STACKEND REG0
+STR CONTEXTHEAD REG0
+
+# Save STACKEND
+LOAD STACKEND REG0
+PUSH REG0
+
+# Allocates RAM for N
+#Increment STACKEND
+LOAD STACKEND REG0
+ADD REG0 1 REG0
+STR STACKEND REG0
+
+# Store N-2 into N    N STORED IN REG5 FROM EARLIER
+LOAD CONTEXTHEAD REG0
+ADD REG0 NOffset REG0
+SUB REG5 2 REG1
+STR REG0 REG1
+
 CALL fibb
-LOAD REG1 REG2
-POP REG3
-ADD REG2 REG3 REG2
-STR REG1 REG2
+
+# Restore STACKEND and CONTEXTHEAD
+POP REG0
+STR STACKEND REG0
+POP REG0
+STR CONTEXTHEAD REG0
+
+#
+# end fibb call
+#
+
+LOAD CONTEXTHEAD REG0
+ADD REG0 REG1
+ADD REG0 AOffset REG0
+ADD REG1 BOffset REG1
+LOAD REG0 REG0
+LOAD REG1 REG1
+ADD REG0 REG1 REG0
+LOAD CONTEXTHEAD REG1
+STR REG1 REG0
+
 RET
 
 label zero
-STR REG1 0
+LOAD CONTEXTHEAD REG0
+STR REG0 0
 RET
+
 label one
-STR REG1 1
+LOAD CONTEXTHEAD REG0
+STR REG0 1
 RET
 
+#
+# End definition of fibb
+#
 
 
-# Takes two variables, adds the value of B and adds to A
-# Usage:
-# ADD A REG0
-# ADD B REG1
-# CALL addVars
-label addVars
-LOAD REG0 REG2
-LOAD REG1 REG1
-ADD REG1 REG2 REG2
-STR REG0 REG2
-RET
 
-# Moves value of B into A
-# Usage:
-# ADD A REG0
-# ADD B REG1
-# CALL moveVar
-label moveVar
-LOAD REG1 REG1
-STR REG0 REG1
-RET
+#
+# MAIN
+#
+
+label main
+
+#
+# Begin fibb call
+#
+
+# Allocates RAM for returnVar
+const returnVarOffset 0
+# Increment STACKEND
+LOAD STACKEND REG0
+ADD REG0 1 REG0
+STR STACKEND REG0
+
+# Save CONTEXTHEAD and move it forward
+LOAD CONTEXTHEAD REG0
+PUSH REG0
+LOAD STACKEND REG0
+STR CONTEXTHEAD REG0
+
+# Save STACKEND
+LOAD STACKEND REG0
+PUSH REG0
+
+# Allocates RAM for N
+#Increment STACKEND
+LOAD STACKEND REG0
+ADD REG0 1 REG0
+STR STACKEND REG0
+
+# Store numFibbs into N
+LOAD CONTEXTHEAD REG0
+ADD REG0 NOffset REG0
+STR REG0 numFibbs
+
+CALL fibb
+
+# Restore STACKEND and CONTEXTHEAD
+POP REG0
+STR STACKEND REG0
+POP REG0
+STR CONTEXTHEAD REG0
+
+#
+# end fibb call
+#
+
+# Store return value into REG0 so I can see it
+LOAD CONTEXTHEAD REG0
+ADD REG0 returnVarOffset REG0
+LOAD REG0 REG0
+
+label infiniteLoop
+JMP infiniteLoop

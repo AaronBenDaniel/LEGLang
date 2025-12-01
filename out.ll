@@ -1,89 +1,231 @@
 CALL 0 initVars 0
+STR | II CONTEXTHEAD 2 0
+STR | II STACKEND 2 0
+
+
+JMP | EQ | II 0 0 main
 
 
 
-ADD | II a 0 REG0
-ADD | II b 0 REG1
+#
+# Begin definition of fibb
+#
+
+# returnVarOffset is always 0
+
+label fibb_
+# Load value of N into REG0
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | RI REG0 NOffset REG0
+LOAD | RR REG0 REG0 0
+
+# Test in N equals 1 or 0
+JMP | EQ | RI REG0 0 zero
+JMP | EQ | RI REG0 1 one
+
+# A=fibb(N-1)
+
+#
+# Begin fibb call
+#
+
+# Store N in REG5 IMPORTANT FOR LATER
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | II NOffset 0 REG0
+LOAD | RR REG0 REG5 0
+
+# Allocates RAM for returnVar
+# Increment STACKEND
+LOAD | IR STACKEND REG0 0
+ADD | RI REG0 1 REG0
+STR | IR STACKEND REG0 0
+
+# Save CONTEXTHEAD and move it forward
+LOAD | IR CONTEXTHEAD REG0 0
+PUSH | RR 0 REG0 0
+LOAD | IR STACKEND REG0 0
+STR | IR CONTEXTHEAD REG0 0
+
+# Save STACKEND
+LOAD | IR STACKEND REG0 0
+PUSH | RR 0 REG0 0
+
+# Allocates RAM for N
+#Increment STACKEND
+LOAD | IR STACKEND REG0 0
+ADD | RI REG0 1 REG0
+STR | IR STACKEND REG0 0
+
+# Store N-1 into N    N STORED IN REG5 FROM EARLIER
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | RI REG0 NOffset REG0
+SUB | RI REG5 1 REG1
+STR | RR REG0 REG1 0
+
 CALL 0 fibb 0
-LOAD | IR b REG0 0
+
+# Restore STACKEND and CONTEXTHEAD
+POP | RR 0 REG0 0
+STR | IR STACKEND REG0 0
+POP | RR 0 REG0 0
+STR | IR CONTEXTHEAD REG0 0
+
+#
+# end fibb call
+#
+
+# B=fibb(N-2)
+
+#
+# Begin fibb call
+#
+
+# Store N in REG5 IMPORTANT FOR LATER
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | II NOffset 0 REG0
+LOAD | RR REG0 REG5 0
+
+# Allocates RAM for returnVar
+# Increment STACKEND
+LOAD | IR STACKEND REG0 0
+ADD | RI REG0 1 REG0
+STR | IR STACKEND REG0 0
+
+# Save CONTEXTHEAD and move it forward
+LOAD | IR CONTEXTHEAD REG0 0
+PUSH | RR 0 REG0 0
+LOAD | IR STACKEND REG0 0
+STR | IR CONTEXTHEAD REG0 0
+
+# Save STACKEND
+LOAD | IR STACKEND REG0 0
+PUSH | RR 0 REG0 0
+
+# Allocates RAM for N
+#Increment STACKEND
+LOAD | IR STACKEND REG0 0
+ADD | RI REG0 1 REG0
+STR | IR STACKEND REG0 0
+
+# Store N-2 into N    N STORED IN REG5 FROM EARLIER
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | RI REG0 NOffset REG0
+SUB | RI REG5 2 REG1
+STR | RR REG0 REG1 0
+
+CALL 0 fibb 0
+
+# Restore STACKEND and CONTEXTHEAD
+POP | RR 0 REG0 0
+STR | IR STACKEND REG0 0
+POP | RR 0 REG0 0
+STR | IR CONTEXTHEAD REG0 0
+
+#
+# end fibb call
+#
+
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | RI REG0 0 REG1
+ADD | RI REG0 AOffset REG0
+ADD | RI REG1 BOffset REG1
+LOAD | RR REG0 REG0 0
+LOAD | RR REG1 REG1 0
+ADD | RR REG0 REG1 REG0
+LOAD | IR CONTEXTHEAD REG1 0
+STR | RR REG1 REG0 0
+
+RET 0 0 COUNTER
+
+label zero_
+LOAD | IR CONTEXTHEAD REG0 0
+STR | RI REG0 0 0
+RET 0 0 COUNTER
+
+label one_
+LOAD | IR CONTEXTHEAD REG0 0
+STR | RI REG0 1 0
+RET 0 0 COUNTER
+
+#
+# End definition of fibb
+#
+
+
+
+#
+# MAIN
+#
+
+label main_
+
+#
+# Begin fibb call
+#
+
+# Allocates RAM for returnVar
+# Increment STACKEND
+LOAD | IR STACKEND REG0 0
+ADD | RI REG0 1 REG0
+STR | IR STACKEND REG0 0
+
+# Save CONTEXTHEAD and move it forward
+LOAD | IR CONTEXTHEAD REG0 0
+PUSH | RR 0 REG0 0
+LOAD | IR STACKEND REG0 0
+STR | IR CONTEXTHEAD REG0 0
+
+# Save STACKEND
+LOAD | IR STACKEND REG0 0
+PUSH | RR 0 REG0 0
+
+# Allocates RAM for N
+#Increment STACKEND
+LOAD | IR STACKEND REG0 0
+ADD | RI REG0 1 REG0
+STR | IR STACKEND REG0 0
+
+# Store numFibbs into N
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | RI REG0 NOffset REG0
+STR | RI REG0 numFibbs 0
+
+CALL 0 fibb 0
+
+# Restore STACKEND and CONTEXTHEAD
+POP | RR 0 REG0 0
+STR | IR STACKEND REG0 0
+POP | RR 0 REG0 0
+STR | IR CONTEXTHEAD REG0 0
+
+#
+# end fibb call
+#
+
+# Store return value into REG0 so I can see it
+LOAD | IR CONTEXTHEAD REG0 0
+ADD | RI REG0 returnVarOffset REG0
+LOAD | RR REG0 REG0 0
 
 label infiniteLoop_
 JMP | EQ | II 0 0 infiniteLoop
 
-# Stores A-th fibbonacci number in B
-# Usage:
-# ADD A REG0
-# ADD B REG1
-# CALL fibb
-# A-th fibbonacci number now in B
-label fibb_
-LOAD | RR REG0 REG2 0
-JMP | EQ | RI REG2 0 zero
-JMP | EQ | RI REG2 1 one
-
-SUB | RI REG2 1 REG2
-STR | RR REG0 REG2 0
-PUSH | RR 0 REG2 0
-CALL 0 fibb 0
-POP | RR 0 REG2 0
-LOAD | RR REG1 REG3 0
-PUSH | RR 0 REG3 0
-
-
-SUB | RI REG2 1 REG2
-STR | RR REG0 REG2 0
-CALL 0 fibb 0
-LOAD | RR REG1 REG2 0
-POP | RR 0 REG3 0
-ADD | RR REG2 REG3 REG2
-STR | RR REG1 REG2 0
-RET 0 0 COUNTER
-
-label zero_
-STR | RI REG1 0 0
-RET 0 0 COUNTER
-label one_
-STR | RI REG1 1 0
-RET 0 0 COUNTER
-
-
-
-# Takes two variables, adds the value of B and adds to A
-# Usage:
-# ADD A REG0
-# ADD B REG1
-# CALL addVars
-label addVars_
-LOAD | RR REG0 REG2 0
-LOAD | RR REG1 REG1 0
-ADD | RR REG1 REG2 REG2
-STR | RR REG0 REG2 0
-RET 0 0 COUNTER
-
-# Moves value of B into A
-# Usage:
-# ADD A REG0
-# ADD B REG1
-# CALL moveVar
-label moveVar_
-LOAD | RR REG1 REG1 0
-STR | RR REG0 REG1 0
-RET 0 0 COUNTER
-
 # Initialize variables
 label initVars_
-STR | II a 9 0
-STR | II b 0 0
 RET 0 0 COUNTER
 
 # consts:
-const a 255
-const b 254
-const infiniteLoop 5
-const fibb 6
-const zero 24
-const one 26
-const addVars 28
-const moveVar 33
-const initVars 36
+const CONTEXTHEAD 0
+const STACKEND 1
+const numFibbs 3
+const NOffset 1
+const fibb 4
+const AOffset NOffset+1
+const BOffset AOffset+1
+const zero 67
+const one 70
+const main 73
+const returnVarOffset 0
+const infiniteLoop 96
+const initVars 97
 

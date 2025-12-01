@@ -223,18 +223,14 @@ try:
 
             case "LOAD":
                 if words[1] in validDests:
-                    modifier = "R"
+                    modifier = "RR"
                 elif words[1] in consts or words[1].isdigit():
-                    modifier = "I"
+                    modifier = "IR"
                 else:
                     raise ValueError(
                         f"Line {lineNumber}: Invalid arugment `{words[1]}` for `LOAD`"
                     )
-                if words[2] in validDests:
-                    modifier = modifier + "R"
-                elif words[2] in consts or words[2].isdigit():
-                    modifier = modifier + "I"
-                else:
+                if words[2] not in validDests:
                     raise ValueError(
                         f"Line {lineNumber}: Invalid arugment `{words[2]}` for `LOAD`"
                     )
