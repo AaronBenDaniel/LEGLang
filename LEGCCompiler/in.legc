@@ -1,0 +1,6 @@
+void main(){
+    const signed myVar = 1;
+    if(myVar<2){
+        read(myVar)
+    }
+}
