@@ -1,30 +1,39 @@
 # /bin/bash/python
 import io
 import re
-from Lexer_Tokens import *
+from pathlib import Path
 
 indentation_chars = [" ", "\n", "\r", "\t", "\v", "\f"]
 
+global symbol_table
+symbol_table = {}
 
-class symbol:
-    def __init__(self, value: str, line: int, col: str):
-        self.value = value
+
+class Symbol:
+    def __init__(self, name: str, line: int, col: str):
+        self.id = int(len(symbol_table) / 2)
+        self.name = name
         self.line = line
         self.col = col
+        self.is_initialized = False
+        self.is_declared = False
+        self.data_type = None
+        self.type = None
 
     def __str__(self):
-        return f'<symbol: "{self.value}" defined on line: {line}, col: {col}>'
+        return f'<symbol: "{self.name}" defined on line: {self.line}, col: {self.col}>'
 
 
-def add_symbol(name):
-    id = int(len(symbol_table) / 2)
-    symbol_table[id] = name
+def add_symbol(name: str, line: int, col: int):
+    symbol = Symbol(name, line, col)
+    id = symbol.id
+    symbol_table[id] = symbol
     symbol_table[name] = id
     return id
 
 
-global symbol_table
-symbol_table = {}
+from Lexer_Tokens import *
+from Parser_Objects import *
 
 
 def lex(source_code: io.TextIOWrapper):
@@ -85,10 +94,15 @@ def lex(source_code: io.TextIOWrapper):
         if string == "while":
             return Lexer_While
 
+        # Other
+        if string == "read":
+            return Lexer_Read
+        if string == "write":
+            return Lexer_Write
         if re.search(r"^\d+[A-Za-z]\Z", string):
             raise (
                 ValueError(
-                    f"Identifier cannot begin with a number: line: {line}, col: {col-len(string)+1}"
+                    f"Identifier cannot begin with a number: line: {line}, col: {col-len(string)+1}, value: '{string}'"
                 )
             )
         if re.search(r"^\d+\Z", string):
@@ -101,6 +115,7 @@ def lex(source_code: io.TextIOWrapper):
     tokens = []
     lines = [line for line in source_code]
     line = 0
+    col = 0
     last_line = len(lines)
     global paren_count
     global brace_count
@@ -109,10 +124,12 @@ def lex(source_code: io.TextIOWrapper):
 
     def paren_checker():
         global paren_count
-        if paren_count != 0:
+        if paren_count > 0:
             raise (Exception(f"Expected ')': line: {line}, col: {col}"))
+        if paren_count < 0:
+            raise (Exception(f"Missing '(': line: {line}, col: {col}"))
 
-    def append_token(string, tokens):
+    def append_token(string, tokens, line, col):
         global symbol_table
         global paren_count
         global brace_count
@@ -127,12 +144,20 @@ def lex(source_code: io.TextIOWrapper):
             length = len(string)
             if match is Lexer_Identifier:
                 if string in symbol_table:
-                    string = symbol_table[string]
+                    value = symbol_table[string]
                 else:
-                    string = add_symbol(string)
+                    if not isinstance(tokens[-1], Lexer_Data_Type):
+                        raise (
+                            NameError(
+                                f"Symbol: {string} is not declared, line: {line}, col: {col}"
+                            )
+                        )
+                    value = add_symbol(string, line, col - len(string))
+            else:
+                value = string
             tokens.append(
                 match(
-                    string,
+                    value,
                     line=line,
                     col=col,
                     length=length,
@@ -151,7 +176,7 @@ def lex(source_code: io.TextIOWrapper):
             elif match == Lexer_Semicolon:
                 paren_checker()
 
-            tokens.append(match(line, col - 1))
+            tokens.append(match(line, col))
         return tokens
 
     for ln in lines:
@@ -165,27 +190,102 @@ def lex(source_code: io.TextIOWrapper):
             if char == "#":
                 string = buffer[:-1]
                 if string:
-                    tokens = append_token(string, tokens)
+                    tokens = append_token(string, tokens, line, col)
                 break
             match = check(buffer, line, col)
-            if not match or (col == last_char and line == last_line):
+            if not match:
                 string = buffer[:-1]
-                tokens = append_token(string, tokens)
+                tokens = append_token(string, tokens, line, col)
                 buffer = buffer[-1:]
                 if buffer in indentation_chars:
                     buffer = ""
 
-    tokens = append_token(buffer, tokens)
+    tokens = append_token(buffer, tokens, last_line, col + 1)
 
     paren_checker()
     if brace_count != 0:
         raise (Exception("Expected '}'"))
+    if "main" not in symbol_table:
+        raise (NameError("Program declares no Main function"))
 
     return tokens
 
 
+def parse(tokens):
+    def pop_token():
+        token = tokens[0]
+        tokens.remove(token)
+        return token
+
+    def peek_token(n: int = 1):
+        return tokens[-1 + n]
+
+    def parse_token(LHS=None):
+        current_token = pop_token()
+
+        if isinstance(current_token, Lexer_LBrace):
+            children = []
+            while True:
+                parsed_object = parse_token()
+                if isinstance(parsed_object, Parser_TERMINATE):
+                    break
+                children.append(parsed_object)
+            return Parser_Block(children)
+
+        if isinstance(current_token, Lexer_RBrace):
+            return Parser_TERMINATE()
+
+        if isinstance(current_token, Lexer_LParen):
+            parsed_object = parse_token()
+            if not isinstance(parsed_object, Parser_Term) or isinstance(
+                parsed_object, Parser_Assignment_Expression
+            ):
+                raise (ValueError("Parsed parenthesis do not contain a term"))
+            return parsed_object
+
+        if isinstance(current_token, Lexer_RParen):
+            return Parser_TERMINATE()
+
+        if isinstance(current_token, Lexer_Literal):
+            literal = Parser_Literal(current_token.value)
+            if isinstance(peek_token(), Lexer_Operator):
+                return parse_token(literal)
+            return literal
+
+        if isinstance(current_token, Lexer_Exclamation):
+            next_token = peek_token()
+            if isinstance(next_token, Lexer_LParen):
+                return Parser_Unary_Expression(parse_token(), Lexer_Exclamation)
+            if isinstance(next_token, Lexer_Literal):
+                return Parser_Unary_Expression(
+                    Parser_Literal(pop_token().value), Lexer_Exclamation
+                )
+            if isinstance(next_token, Lexer_Identifier) or isinstance(next_token, Lexer_Read):
+                parsed = parse(current_token)
+                if not isinstance(parsed, Parser_Unary_Expression) or isinstance(
+                    parsed.operator, Lexer_Exclamation
+                ):
+                    raise (
+                        ValueError(
+                            "Expected to recieve an Unary Exclamation Expression"
+                        )
+                    )
+                return parsed
+            raise (ValueError("Unary Operator `!` expected a term"))
+
+        # NOT DONE IMPLEMENTING, CONTINUE WRITING IF BLOCKS FOR EACH POSSIBLE LEXER TOKEN
+
+    tokens = [Lexer_LBrace] + tokens + [Lexer_RBrace]
+    return Parser_Function_Call(symbol_table[symbol_table["main"]], None)
+
+
 if __name__ == "__main__":
-    with open("./LEGCCompiler/in.legc") as source_code:
+    tokens = []
+    with open(Path(__file__).parent / "in.legc") as source_code:
         tokens = lex(source_code)
+    print("TOKENS:-----------------------\n")
     for token in tokens:
         print(token)
+    abtract_syntax_tree = parse(tokens)
+    print("ABSTRACT SYNTAX TREE:---------\n")
+    print(abtract_syntax_tree)
