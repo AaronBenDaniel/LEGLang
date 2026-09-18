@@ -1,8 +1,8 @@
-void test
+void test;
 void main(){
-    const signed myVar = 1;
-    if(myVar<2){
-        write(myVar)
-    test
-    }
+    signed myVar;
+    myVar = 1;
+    
+        
+    
 }

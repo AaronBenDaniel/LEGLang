@@ -7,6 +7,8 @@ indentation_chars = [" ", "\n", "\r", "\t", "\v", "\f"]
 
 global symbol_table
 symbol_table = {}
+global constant_table
+constant_table = {}
 
 
 class Symbol:
@@ -49,14 +51,26 @@ def lex(source_code: io.TextIOWrapper):
             return Lexer_Slash
         if string == "&":
             return Lexer_Amp
+        if string == "&&":
+            return Lexer_Double_Amp
         if string == "|":
             return Lexer_Pipe
+        if string == "||":
+            return Lexer_Double_Pipe
         if string == ">":
             return Lexer_Greater
+        if string == ">=":
+            return Lexer_Greater_Equals
         if string == "<":
             return Lexer_Less
+        if string == "<=":
+            return Lexer_Less_Equals
         if string == "=":
             return Lexer_Equals
+        if string == "==":
+            return Lexer_Double_Equals
+        if string == "!=":
+            return Lexer_Exclamation_Equals
         if string == "!":
             return Lexer_Exclamation
 
@@ -93,6 +107,8 @@ def lex(source_code: io.TextIOWrapper):
             return Lexer_Void
         if string == "while":
             return Lexer_While
+        if string == "break":
+            return Lexer_Break
 
         # Other
         if string == "read":
@@ -213,6 +229,8 @@ def lex(source_code: io.TextIOWrapper):
 
 def parse(tokens):
     def pop_token():
+        if len(tokens) == 0:
+            return Parser_TERMINATE
         token = tokens[0]
         tokens.remove(token)
         return token
@@ -220,62 +238,191 @@ def parse(tokens):
     def peek_token(n: int = 1):
         return tokens[-1 + n]
 
-    def parse_token(LHS=None):
+    def expect_term(binding_power=0, LHS=None):
+        parsed = parse_token(binding_power, LHS)
+        if not isinstance(parsed, Parser_Term):
+            raise (
+                ValueError(
+                    f"Expected to recieve a valid Parser Term near {peek_token()}, got: {parsed}"
+                )
+            )
+        return parsed
+
+    def parse_token(binding_power=0, LHS=None):
         current_token = pop_token()
+        if (
+            binding_power != None
+            and LHS != None
+            and binding_power >= getattr(current_token, "binding_power", 0)
+            and not isinstance(current_token, Lexer_LParen)
+        ):
+            return LHS
+
+        if isinstance(current_token, Lexer_Comma):
+            raise (NotImplementedError("Comma"))
+
+        if isinstance(current_token, Lexer_Semicolon):
+            return current_token
 
         if isinstance(current_token, Lexer_LBrace):
             children = []
             while True:
                 parsed_object = parse_token()
-                if isinstance(parsed_object, Parser_TERMINATE):
+                if isinstance(parsed_object, Lexer_RBrace):
                     break
-                children.append(parsed_object)
+                if not any(
+                    [parsed_object == None]
+                    + [
+                        isinstance(parsed_object, a)
+                        for a in [
+                            Parser_Assignment_Expression,
+                            Parser_Function_Call,
+                            Parser_Variable_Declaration,
+                            Lexer_Semicolon,
+                        ]
+                    ]
+                ):
+                    raise (TypeError("Parser Block contains illegal code"))
+                if isinstance(
+                    parsed_object, Parser_Assignment_Expression
+                ) or isinstance(parsed_object, Parser_Function_Call):
+                    children.append(parsed_object)
             return Parser_Block(children)
 
         if isinstance(current_token, Lexer_RBrace):
-            return Parser_TERMINATE()
+            return current_token
 
         if isinstance(current_token, Lexer_LParen):
-            parsed_object = parse_token()
-            if not isinstance(parsed_object, Parser_Term) or isinstance(
-                parsed_object, Parser_Assignment_Expression
-            ):
-                raise (ValueError("Parsed parenthesis do not contain a term"))
-            return parsed_object
+            is_function_call = (
+                LHS != None
+                and isinstance(LHS, Lexer_Identifier)
+                and (LHS.symbol.type is Identifier_Type.function)
+            )
+            if not is_function_call:
+                return expect_term()
+            else:
+                arguments = []
+                if isinstance(peek_token(), Lexer_RParen):
+                    pop_token()
+                    return arguments
+                while True:
+                    arguments.append(expect_term())
+                    parsed = parse_token()
+                    if not isinstance(parsed, Lexer_Semicolon):
+                        if isinstance(parsed, Lexer_RParen):
+                            break
+                        raise (
+                            ValueError(
+                                f"Function call argument list expected `;`, got: {parsed}"
+                            )
+                        )
+
+                return arguments
 
         if isinstance(current_token, Lexer_RParen):
-            return Parser_TERMINATE()
+            return current_token
 
         if isinstance(current_token, Lexer_Literal):
             literal = Parser_Literal(current_token.value)
-            if isinstance(peek_token(), Lexer_Operator):
-                return parse_token(literal)
+            next_token = peek_token()
+            if isinstance(next_token, Lexer_Operator):
+                return parse_token(binding_power, literal)
             return literal
 
         if isinstance(current_token, Lexer_Exclamation):
-            next_token = peek_token()
-            if isinstance(next_token, Lexer_LParen):
-                return Parser_Unary_Expression(parse_token(), Lexer_Exclamation)
-            if isinstance(next_token, Lexer_Literal):
-                return Parser_Unary_Expression(
-                    Parser_Literal(pop_token().value), Lexer_Exclamation
-                )
-            if isinstance(next_token, Lexer_Identifier) or isinstance(next_token, Lexer_Read):
-                parsed = parse(current_token)
-                if not isinstance(parsed, Parser_Unary_Expression) or isinstance(
-                    parsed.operator, Lexer_Exclamation
-                ):
-                    raise (
-                        ValueError(
-                            "Expected to recieve an Unary Exclamation Expression"
-                        )
+            if LHS != None:
+                raise (ValueError("Unary Operator `!` cannot have an LHS"))
+            return Parser_Unary_Expression(
+                expect_term(Lexer_Exclamation.binding_power),
+                Lexer_Exclamation,
+            )
+
+        if isinstance(current_token, Lexer_Equals):
+            if not isinstance(LHS, Parser_Variable):
+                raise (
+                    ValueError(
+                        f"Assignment expression expected an LHS variable, got: {LHS}"
                     )
-                return parsed
-            raise (ValueError("Unary Operator `!` expected a term"))
+                )
+            if LHS in constant_table:
+                raise (TypeError("`{LHS}` is a `const` and changed"))
+            return Parser_Assignment_Expression(LHS, expect_term())
+
+        if isinstance(current_token, Lexer_Identifier):
+            if current_token.symbol.type == Identifier_Type.variable:
+                variable = Parser_Variable(current_token.symbol)
+                next_token = peek_token()
+                if isinstance(next_token, Lexer_Operator):
+                    return parse_token(binding_power, variable)
+                return variable
+            else:
+                function_call = Parser_Function_Call(
+                    current_token.symbol, parse_token(LHS=current_token)
+                )
+                next_token = peek_token()
+                if isinstance(next_token, Lexer_Operator):
+                    return parse_token(binding_power, function_call)
+                return function_call
+
+        if isinstance(current_token, Lexer_Data_Type):
+            if isinstance(peek_token(2), Lexer_Semicolon):
+                next_token = peek_token()
+                if isinstance(next_token, Lexer_Identifier):
+                    next_token.symbol.type = Identifier_Type.variable
+                return Parser_Variable_Declaration(current_token, parse_token())
+            else:
+                next_token = pop_token()
+                next_token.symbol.type = Identifier_Type.function
+                arguments = parse_token(LHS=next_token)
+                if isinstance(peek_token(), Lexer_LBrace):
+                    block = parse_token()
+                else:
+                    block = None
+                Parser_Function_Declaration(
+                    getattr(next_token, "symbol", None),
+                    current_token,
+                    arguments,
+                    block,
+                )
+                return
 
         # NOT DONE IMPLEMENTING, CONTINUE WRITING IF BLOCKS FOR EACH POSSIBLE LEXER TOKEN
 
-    tokens = [Lexer_LBrace] + tokens + [Lexer_RBrace]
+        if any(
+            [
+                isinstance(current_token, lexer_class)
+                for lexer_class in [
+                    Lexer_Plus,
+                    Lexer_Minus,
+                    Lexer_Star,
+                    Lexer_Slash,
+                    Lexer_Amp,
+                    Lexer_Double_Amp,
+                    Lexer_Pipe,
+                    Lexer_Double_Pipe,
+                    Lexer_Greater,
+                    Lexer_Greater_Equals,
+                    Lexer_Less,
+                    Lexer_Less_Equals,
+                    Lexer_Exclamation_Equals,
+                    Lexer_Double_Equals,
+                ]
+            ]
+        ):
+            if LHS == None:
+                raise (ValueError(f"{current_token} expected an LHS, got: None"))
+            return Parser_Binary_Expression(
+                LHS, current_token, expect_term(current_token.binding_power)
+            )
+
+    tokens = [Lexer_LBrace()] + tokens + [Lexer_RBrace()]
+    parsed_tree = parse_token()
+    if not isinstance(parsed_tree, Parser_Block):
+        raise (TypeError(f"Parser pass expected a Parser Block, got: {parsed_tree}"))
+    if parsed_tree.children != []:
+        raise (TypeError("Code cannot exist outside of function declarations"))
+    if symbol_table[symbol_table["main"]].type != Identifier_Type.function:
+        raise (TypeError("`main` must be a function"))
     return Parser_Function_Call(symbol_table[symbol_table["main"]], None)
 
 
@@ -287,5 +434,4 @@ if __name__ == "__main__":
     for token in tokens:
         print(token)
     abtract_syntax_tree = parse(tokens)
-    print("ABSTRACT SYNTAX TREE:---------\n")
-    print(abtract_syntax_tree)
+    print("\nParsed!-----------------------\n")

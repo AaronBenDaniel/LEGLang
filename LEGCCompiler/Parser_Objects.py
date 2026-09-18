@@ -13,28 +13,20 @@ class Parser_Object:
         self.children: list[Parser_Object] = None
 
 
-class Parser_Executable_Object(Parser_Object):
+class Parser_Block(Parser_Object):
     def __init__(self, children: list[Parser_Object]):
         self.children = children
-
-
-class Parser_Block(Parser_Executable_Object):
-    def __init__(self, children: list[Parser_Object]):
-        super().__init__(children)
-
-
-class Parser_Line(Parser_Executable_Object):
-    def __init__(self, action: Parser_Object):
-        super().__init__([action])
 
 
 class Parser_Term(Parser_Object):
     def __init__(self):
         pass
 
+
 class Parser_Read(Parser_Term):
     def __init__(self):
         pass
+
 
 class Parser_Literal(Parser_Term):
     def __init__(self, value: int):
@@ -132,7 +124,7 @@ class Parser_Variable_Declaration(Parser_Object):
         self.variable = variable
         self.variable.symbol.is_declared = True
         self.variable.symbol.data_type = data_type
-        self.symbol.type = Identifier_Type.variable
+        self.variable.symbol.type = Identifier_Type.variable
 
 
 class Parser_Function_Declaration(Parser_Object):
@@ -148,11 +140,12 @@ class Parser_Function_Declaration(Parser_Object):
             raise (
                 ValueError("Parser Function Declaration symbol must be a valid Symbol")
             )
-        if (symbol.is_declared and (not symbol.is_initialized)) or (symbol.type is Identifier_Type.variable):
+        if (symbol.is_declared and (not symbol.is_initialized)) or (
+            symbol.type is Identifier_Type.variable
+        ):
             raise (NameError(f"Redeclaration of '{symbol}"))
         if symbol.is_initialized == True:
             raise (NameError(f"Redefinition of '{symbol}"))
-        print(type(data_type))
         if not isinstance(data_type, Lexer_Data_Type):
             raise (
                 ValueError(
@@ -165,12 +158,19 @@ class Parser_Function_Declaration(Parser_Object):
                     "Parser Function Declaration block must be a valid Parser Block"
                 )
             )
-        if not all(
-            [
-                isinstance(argument, Parser_Term)
-                for argument in (arguments if arguments is not None else [])
-            ]
-        ):
+        try:
+            if not all(
+                [
+                    isinstance(argument, Parser_Term)
+                    for argument in (arguments if arguments is not None else [])
+                ]
+            ):
+                raise (
+                    ValueError(
+                        "Parser Function Declaration arguments must be valid Parser Terms"
+                    )
+                )
+        except:
             raise (
                 ValueError(
                     "Parser Function Declaration arguments must be valid Parser Terms"
@@ -203,7 +203,9 @@ class Parser_Function_Call(Parser_Object):
                     f"Parser Function '{symbol}' must be defined before being called"
                 )
             )
-        if not all([isinstance(argument, Parser_Term) for argument in arguemnts]):
+        if arguments == None:
+            arguments = []
+        if not all([isinstance(argument, Parser_Term) for argument in arguments]):
             raise (
                 ValueError("Parser Function Call arguments must be valid Parser Terms")
             )

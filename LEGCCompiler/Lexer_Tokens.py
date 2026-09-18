@@ -28,51 +28,97 @@ class Lexer_Operator(Lexer_Token):
 class Lexer_Plus(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Plus", line, col, 1)
+        self.binding_power = 10
 
 
 class Lexer_Minus(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Minus", line, col, 1)
+        self.binding_power = 13
 
 
 class Lexer_Star(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Star", line, col, 1)
+        self.binding_power = 12
 
 
 class Lexer_Slash(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Slash", line, col, 1)
+        self.binding_power = 12
 
 
 class Lexer_Amp(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Amp", line, col, 1)
+        self.binding_power = 7
+
+
+class Lexer_Double_Amp(Lexer_Operator):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Double_Amp", line, col, 2)
+        self.binding_power = 4
 
 
 class Lexer_Pipe(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Pipe", line, col, 1)
+        self.binding_power = 5
+
+
+class Lexer_Double_Pipe(Lexer_Operator):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Double_Pipe", line, col, 2)
+        self.binding_power = 3
 
 
 class Lexer_Greater(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Greater", line, col, 1)
+        self.binding_power = 9
+
+
+class Lexer_Greater_Equals(Lexer_Operator):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Greater_Equals", line, col, 2)
+        self.binding_power = 9
 
 
 class Lexer_Less(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Less", line, col, 1)
+        self.binding_power = 9
+
+
+class Lexer_Less_Equals(Lexer_Operator):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Greater_Equals", line, col, 2)
+        self.binding_power = 9
 
 
 class Lexer_Equals(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Equals", line, col, 1)
+        self.binding_power = 1
+
+
+class Lexer_Double_Equals(Lexer_Operator):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Double_Equals", line, col, 2)
+        self.binding_power = 8
+
+
+class Lexer_Exclamation_Equals(Lexer_Operator):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Exclamation_Equals", line, col, 2)
+        self.binding_power = 8
 
 
 class Lexer_Exclamation(Lexer_Operator):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Exclamation", line, col, 1)
+        self.binding_power = 13
 
 
 #
@@ -83,11 +129,13 @@ class Lexer_Exclamation(Lexer_Operator):
 class Lexer_LParen(Lexer_Token):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_LParen", line, col, 1)
+        self.binding_power = 14
 
 
 class Lexer_RParen(Lexer_Token):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_RParen", line, col, 1)
+        self.binding_power = 0
 
 
 class Lexer_LBrace(Lexer_Token):
@@ -124,6 +172,9 @@ class Lexer_Continue(Lexer_Token):
     def __init__(self, line: int = None, col: int = None):
         super().__init__("Lexer_Continue", line, col, 8)
 
+class Lexer_Break(Lexer_Token):
+    def __init__(self, line: int = None, col: int = None):
+        super().__init__("Lexer_Break", line, col, 5)
 
 class Lexer_Else(Lexer_Token):
     def __init__(self, line: int = None, col: int = None):
@@ -188,10 +239,10 @@ class Lexer_Identifier(Lexer_Token):
     ):
         super().__init__("Lexer_Identifier", line, col, length)
         self.id = id
-        self.value = symbol_table[id]
+        self.symbol = symbol_table[id]
 
     def __str__(self):
-        return super().__str__()[:-1] + f", value: {self.value}, id: {self.id}>"
+        return super().__str__()[:-1] + f", symbol: {self.symbol}, id: {self.id}>"
 
 
 class Lexer_Literal(Lexer_Token):
@@ -204,7 +255,7 @@ class Lexer_Literal(Lexer_Token):
         length: int = None,
     ):
         super().__init__("Lexer_Literal", line, col, length)
-        self.value = value
+        self.value = int(value)
 
     def __str__(self):
         return super().__str__()[:-1] + f", value: {self.value}>"
